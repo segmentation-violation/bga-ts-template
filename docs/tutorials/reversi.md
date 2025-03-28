@@ -46,17 +46,13 @@ From this point in the tutorial and on:
 	<img src="img/reversi/assets/board.jpg" alt="Image of the reversi board." width="50%"/>
 </p>
 
-2. Add the board to the DOM by adding the following Smarty template code to the `yourgamename_yourgamename.tpl` file:
+2. Add the board by adding the following code to the `setup` function in the `yourgamename.ts` file:
 
-	```html
-	<div id="board">
-		<!-- BEGIN square -->
-		<div id="square_{X}_{Y}" class="square" style="left: {LEFT}px; top: {TOP}px;"></div>
-		<!-- END square -->
-	</div>
+	```typescript
+	// add the board to the game play area
+	const gamePlayArea: HTMLElement | null = document.getElementById("game_play_area");
+	gamePlayArea?.insertAdjacentHTML("beforeend", '<div id="board"></div>');
 	```
-
-	> The `<!-- BEGIN <block> -->` and `<!-- END <block> -->` are Smarty template tags that let you programmatically generate HTML as you will use in a following step. See [X_X.tpl](https://en.doc.boardgamearena.com/Game_layout:_view_and_template:_yourgamename.view.php_and_yourgamename_yourgamename.tpl) for more information about the template file for BGA games.
 
 3. Add the following SCSS to the `yourgamename.scss` file to style the board:
 
@@ -91,35 +87,21 @@ From this point in the tutorial and on:
 	<i>Reloading the game (with a hard refresh).</i>
 	</p>
 
-4. Add the following code to the `yourgamename.view.php` file.
+4. Add the following code to the `setup` function after the `// TODO: Set up your game interface here` in  `yourgamename.ts` file.
 
-	```php
-	// function build_page( $viewArgs ) {
-	// ...
-	/*********** Place your code below:  ************/
-
-	// States that we should start inserting at the 'square' block
-	// <yourgamename>_<yourgamename> should be replaced with your game name: tstemplatereversi_tstemplatereversi
-	$this->page->begin_block( "<yourgamename>_<yourgamename>", "square" );
-
-	$hor_scale = 64.8; // Constant for square width
-	$ver_scale = 64.4; // Constant for square height
-	for( $x=1; $x<=8; $x++ ) // Loop the 8 columns..
-	{
-		for( $y=1; $y<=8; $y++ ) // Loop the 8 rows..
-		{
-			// Inserts the code found at the square block based on the variables.
-			$this->page->insert_block( "square", array(
-				'X' => $x,
-				'Y' => $y,
-				'LEFT' => round( ($x-1)*$hor_scale+10 ),
-				'TOP' => round( ($y-1)*$ver_scale+7 )
-			) );
+	```typescript
+	const board: HTMLElement | null = document.getElementById('board');
+	const hor_scale = 64.8;
+	const ver_scale = 64.4;
+	for (let x=1; x<=8; x++) {
+		for (let y=1; y<=8; y++) {
+			const left = Math.round((x - 1) * hor_scale + 10);
+			const top = Math.round((y - 1) * ver_scale + 7);
+			// we use afterbegin to make sure squares are placed before discs
+			board?.insertAdjacentHTML(`afterbegin`, `<div id="square_${x}_${y}" class="square" style="left: ${left}px; top: ${top}px;"></div>`);
 		}
 	}
 	```
-
-	> See [X.view.php](https://en.doc.boardgamearena.com/Game_layout:_view_and_template:_yourgamename.view.php_and_yourgamename_yourgamename.tpl) for more information about the view file for BGA games.
 
 	<p align="center">
 	<img src="img/reversi/step4-4.png" alt="Image of the game with all red squares." width="50%"/><br>
