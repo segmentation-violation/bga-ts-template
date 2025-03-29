@@ -116,19 +116,11 @@ From this point in the tutorial and on:
 	<img src="img/reversi/assets/tokens.png" alt="Image of the reversi tokens."/>
 	</p>
 
-2. Add a template variable to the `yourgamename_yourgamename.tpl` file to represent the tokens:
+2. Update the existing board in the setup function of `yourgamename.ts` file to a div for the tokens:
 
-	```html
-	<div id="board"> ... </div>
-
-	<script type="text/javascript">
-
-	var jstpl_token='<div class="token tokencolor_${color}" id="token_${x_y}"></div>';
-
-	</script>
+	```typescript
+	gamePlayArea?.insertAdjacentHTML("beforeend", '<div id="board"><div id="tokens"></div></div>');
 	```
-
-	> Note that this does not have any information that needs to be populated by the server, so this could be directly defined in the TypeScript file.
 
 3. Add the following SCSS to the `yourgamename.scss` file to style the tokens:
 
@@ -153,20 +145,24 @@ From this point in the tutorial and on:
 	//// Utility methods
 
 	/** Adds a token matching the given player to the board at the specified location. */
-	addTokenOnBoard( x: number, y: number, player_id: BGA.ID )
-	{
-		let player = this.gamedatas!.players[ player_id ];
-		if (!player)
-			throw new Error( 'Unknown player id: ' + player_id );
+ 	addTokenOnBoard(x: number, y: number, player_id: BGA.ID) {
+    		let player = this.gamedatas!.players[player_id];
+    		if (!player) throw new Error("Unknown player id: " + player_id);
+    		if (player.color === undefined)
+      			throw new Error("Player id: " + player_id + " has no color");
+    		console.log("Placing tokens:", x, y, player_id, player.color);
 
-		dojo.place( this.format_block( 'jstpl_token', {
-			x_y: `${x}_${y}`,
-			color: player.color
-		} ) , 'board' );
+    		const color = player.color;
+    		const tokens: HTMLElement | null = document.getElementById("tokens");
+    		if (!tokens) throw new Error("tokens div not found in board div");
+    		tokens?.insertAdjacentHTML(
+      			"beforeend",
+      			`<div class="token" data-color="${color}" id="token_${x}_${y}"></div>`
+    		);
 
-		this.placeOnObject( `token_${x}_${y}`, `overall_player_board_${player_id}` );
-		this.slideToObject( `token_${x}_${y}`, `square_${x}_${y}` ).play();
-	}
+    		this.placeOnObject(`token_${x}_${y}`, "overall_player_board_" + player_id);
+    		this.slideToObject(`token_${x}_${y}`, `square_${x}_${y}`).play();
+  	}
 	```
 
 	> See [X.js](https://en.doc.boardgamearena.com/Game_interface_logic:_yourgamename.js) for more information about the script file for BGA games.
