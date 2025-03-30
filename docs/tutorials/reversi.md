@@ -132,10 +132,13 @@ From this point in the tutorial and on:
 		position: absolute;
 		background-image: url('img/tokens.png');
 	}
-	// For clarity, but doesn't actually do anything.
-	.tokencolor_cbcbcb { background-position: 0px 0px; }
-	// Translate the background the exact size of the white token, so the black one shows instead.
-	.tokencolor_363636 { background-position: -56px 0px; }
+ 	// select the correct token from the image file
+	.token[data-color="ffffff"] {
+		background-position-x: 0px;
+	}
+	.token[data-color="000000"] {
+		background-position-x: 100%;
+	}
 	```
 
 4. Add a TypeScript function to the `yourgamename.ts` file to place the tokens on the board. You can hover over any function/property in the TypeScript file for its documentation and usage.
@@ -206,11 +209,15 @@ From this point in the tutorial and on:
 
 	> See [dbmodel.sql](https://en.doc.boardgamearena.com/Game_database_model:_dbmodel.sql) for more information about the database file for BGA games.
 
-2. Setup the board in your `yourgamename.game.php` file. This is initializing the data in the database and setting the four discs in the center of the board:
+2. Setup the board in your `modules/php/Game.php` file. This is changing the default player colors, initializing the data in the database and setting the four discs in the center of the board:
 
 	```php
 	protected function setupNewGame( $players, $options = array() )
 	{
+ 		//...
+   		// override player default colors and use traditional black and white tokens
+   		$default_colors = array( "ffffff", "000000" );
+     
 		//...
 		$sql .= implode( ',', $values );
 		self::DbQuery( $sql );
@@ -243,7 +250,7 @@ From this point in the tutorial and on:
 	}
 	```
 
-3. Now, we need to send the board information to the client whenever the page is reloaded. In your `yourgamename.game.php` file, add the following code to the `getAllDatas` function:
+4. Now, we need to send the board information to the client whenever the page is reloaded. In your `modules/php/Game.php` file, add the following code to the `getAllDatas` function:
 
 	```php
 	protected function getAllDatas()
@@ -256,7 +263,7 @@ From this point in the tutorial and on:
 	}
 	```
 
-4. Add the board data to the `Gamedatas` interface in the `yourgamename.d.ts` file:
+5. Add the board data to the `Gamedatas` interface in the `yourgamename.d.ts` file:
 
 	```typescript
 	declare namespace BGA {
@@ -268,7 +275,7 @@ From this point in the tutorial and on:
 	}
 	```
 
-5. Add the following to the `yourgamename.ts` file to place the discs at the start of a page load:
+6. Add the following to the `yourgamename.ts` file to place the discs at the start of a page load:
 
 	```typescript
 	setup(gamedatas: BGA.Gamedatas): void
@@ -295,7 +302,7 @@ From this point in the tutorial and on:
 
 ## Step 7 - Game States
 
-1. Replace the gamestates.jsonc file with the following:
+1. Replace the `source/shared/gamestates.jsonc` file with the following:
 
 	```json
 	{
@@ -358,23 +365,23 @@ From this point in the tutorial and on:
 
 	There is a lot of information in this file. Most information can be found in the hover-over tooltips, but the [Game States](https://en.doc.boardgamearena.com/Your_game_state_machine:_states.inc.php) page has more information about the concepts.
 
-	> This will automatically be converted to `gamestates.inc.php`, `yourgamename.action.php`, and `build/gamestates.d.ts` when you run `npm run build`.
+	> This will automatically be converted to `states.inc.php`, `yourgamename.action.php`, and `build/gamestates.d.ts` when you run `npm run build`.
 
-2. Add placeholder functions to remove `Undefined method` errors. Add the following to your `yourgamename.game.php` file. Note that this replaces the large section of comments in the file describing the player actions, state arguments, and state actions.
+2. Add placeholder functions to remove `Undefined method` errors. Add the following to your `modules/php/Game.php` file. Note that this replaces the large section of comments in the file describing the player actions, state arguments, and state actions.
 
 	```php
 	// Player actions
-	function playDisc( int $x, int $y ) {
+	public function playToken( int $x, int $y ) {
 		/* TODO */
 	}
 
 	// Game state arguments
-	function argPlayerTurn() {
+	public function argPlayerTurn() {
 		/* TODO */
 	}
 
 	// Game state actions
-	function stNextPlayer() {
+	public function stNextPlayer() {
 		/* TODO */
 	}
 	```
@@ -382,17 +389,20 @@ From this point in the tutorial and on:
 3. Fix the `dummmy` state errors in your `yourgamename.ts` file. These are added as a placeholder and now cause issues because there is no gamestate with the name `dummmy`:
 
 	```typescript
-	onEnteringState(...[stateName, state]: BGA.GameStateTuple<['name', 'state']>): void
+ 	/** See {@link BGA.Gamegui#onEnteringState} for more information. */
+	override onEnteringState(...[stateName, state]: BGA.GameStateTuple<['name', 'state']>): void
 	{
 		console.log( 'Entering state: ' + stateName );
 	}
-
-	onLeavingState(stateName: BGA.ActiveGameState["name"]): void
+ 
+	/** See {@link BGA.Gamegui#onLeavingState} for more information. */
+	override onLeavingState(stateName: BGA.ActiveGameState["name"]): void
 	{
 		console.log( 'Leaving state: ' + stateName );
 	}
 
-	onUpdateActionButtons(...[stateName, args]: BGA.GameStateTuple<['name', 'args']>): void
+	/** See {@link BGA.Gamegui#onUpdateActionButtons} for more information. */
+	override onUpdateActionButtons(...[stateName, args]: BGA.GameStateTuple<['name', 'args']>): void
 	{
 		console.log( 'onUpdateActionButtons: ' + stateName, args );
 	}
@@ -411,7 +421,7 @@ When you reload your game (this will cause current games to fail), you should se
 
 There are a couple of variations on the rules for Reversi, but the most common is with `outflanking rules`. You can see the official rules at [World Othello](https://www.worldothello.org/about/about-othello/othello-rules/official-rules/). The rules have been implemented with the following utility functions.
 
-1. Copy these functions into your `yourgamename.game.php` file:
+1. Copy these functions into your `modules/php/Game.php` file:
 
 	```php
 	// Get the complete board with a double associative array
@@ -596,7 +606,7 @@ The game is still not playable, but you can now see the possible moves for the f
 
 ## Step 9 - Player Actions
 
-1. Fill in the `playDisc`  function in your `yourgamename.game.php` file:
+1. Fill in the `playDisc`  function in your `modules/php/Game.php` file:
 
 	```php
 	function playDisc( int $x, int $y )
@@ -635,7 +645,7 @@ The game is still not playable, but you can now see the possible moves for the f
 	}
 	```
 
-3. Fill in the `stNextPlayer` function in your `yourgamename.game.php` file:
+3. Fill in the `stNextPlayer` function in your `modules/php/Game.php` file:
 
 	```php
 	function stNextPlayer()
@@ -744,7 +754,7 @@ Notifications are used to inform players when something happens in the game. In 
 - When discs are converted because of a move
 - When the scores
 
-1. Add the following to the `playDisc` function in your `yourgamename.game.php` file:
+1. Add the following to the `playDisc` function in your `modules/php/Game.php` file:
 
 	```php
 	function playDisc( int $x, int $y )
